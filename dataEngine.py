@@ -29,6 +29,9 @@ class BTreeNode:
                     i += 1
             self.children[i].insert_non_full(key)
 
+    # Split the child node
+    #In: i - index of the child node to be split
+    #In: y - child node to be split
     def split_child(self, i, y):
         t = self.t
         z = BTreeNode(t, y.leaf)
@@ -88,6 +91,7 @@ class BTreeNode:
             current = current.children[0]
         return current.keys[0]
 
+    # Fill child node present in the i-th position in the children list if it has less than t-1 keys
     def fill(self, i):
         t = self.t
         if i != 0 and len(self.children[i - 1].keys) >= t:
@@ -100,6 +104,7 @@ class BTreeNode:
             else:
                 self.merge(i - 1)
 
+    # Borrow a key from the i-th child and insert it into (i-1)-th child
     def borrow_from_prev(self, i):
         child = self.children[i]
         sibling = self.children[i - 1]
@@ -116,6 +121,7 @@ class BTreeNode:
         if not sibling.leaf:
             sibling.children.pop()
 
+    # Borrow a key from the i-th child and insert it into (i+1)-th child
     def borrow_from_next(self, i):
         child = self.children[i]
         sibling = self.children[i + 1]
@@ -127,6 +133,7 @@ class BTreeNode:
         if not sibling.leaf:
             sibling.children.pop(0)
 
+    # Merge i-th child with (i+1)-th child
     def merge(self, i):
         child = self.children[i]
         sibling = self.children[i + 1]
@@ -144,6 +151,8 @@ class BTree:
         self.t = t  # Minimum degree
         self.root = BTreeNode(t, True)
 
+    # IN: k - key to be searched
+    # IN: x - node to start the search from
     def search(self, k, x=None):
         if x is None:
             x = self.root
@@ -157,6 +166,7 @@ class BTree:
         else:
             return self.search(k, x.children[i])
         
+    #Search the tree by the first element of the key (each key is a list)
     def search_first_element(self, k, x=None, results=None):
         if results is None:
             results = []
@@ -180,6 +190,7 @@ class BTree:
 
         return results
 
+    # IN: k - key to be inserted
     def insert(self, k):
         root = self.root
         if len(root.keys) == 2 * self.t - 1:
@@ -231,7 +242,9 @@ class BTree:
             self.reverse_order_traversal(node.children[0], result)
         return result
 
+    #Create a png with the visualization of the BTree
     def visualize(self, filename="btree"):
+        # Create a graphviz object
         def add_nodes_edges(node, dot=None):
             if dot is None:
                 dot = Digraph()
@@ -318,7 +331,11 @@ class Database:
             print(f"Expected {len(table.columns)} values, got {len(values)}.")
             return
         self._read_table(table)
-        table.btree.insert(values)
+        if not self.select_row_from_table(table_name, table.columns[0], values[0]):
+            table.btree.insert(values)
+        else :
+            print(f"Primary key {values[0]} already exists.")
+            return
         self._write_table(table)
 
     def load_table(self, table_name):
@@ -329,15 +346,24 @@ class Database:
         self._read_table(table)
         return table
     
-    def peek_table(self, table_name, reverse=False):
+    def peek_table(self, table_name, collumn_name,reverse=False):
         if table_name not in self.tables:
             print(f"Table '{table_name}' does not exist.")
             return
         table = self.tables[table_name]
         self._read_table(table)
-        if reverse:
-            return table.btree.reverse_order_traversal()
-        return table.btree.in_order_traversal()
+
+        if collumn_name == table.columns[0]:
+            if reverse:
+                return table.btree.reverse_order_traversal()
+            return table.btree.in_order_traversal()
+        
+        else:
+            rows = table.btree.in_order_traversal()
+            rows = sorted(rows, key=lambda x: x[table.columns.index(collumn_name)])
+            if reverse:
+                return rows[::-1]
+            return rows
 
     def _write_table(self, table):
         data = pickle.dumps(table.btree)
@@ -356,10 +382,10 @@ class Database:
         
         table = self.tables[table_name]
         self._read_table(table)
-        #Busca rapida pela chave primaria
+        #Fast search for the primary key
         if column_name == table.columns[0]:
             return table.btree.search_first_element(value)
-        #Por favor pesquise pela chave primaria
+        #Slower search for other columns
         else:
             results = []
             for row in table.btree.in_order_traversal():
@@ -456,21 +482,38 @@ class Database:
 # --------------EXEMPLO DE USO----------------
 
 # Example usage
-db = Database('test.db')
+db = Database('example.db')
 
 # Create a table
 db.create_table('employees', ['id', 'name', 'age'])
 
 # Insert rows into the table
 db.insert_into_table('employees', [1, 'John Doe', 30])
+#make sure no primary key duplicates
+db.insert_into_table('employees', [1, 'Cooler John Doe ', 25])
+
 db.insert_into_table('employees', [2, 'Jane Smith', 25])
 db.insert_into_table('employees', [3, 'Bob Johnson', 35])
+db.insert_into_table('employees', [4, 'Alice Brown', 28])
+db.insert_into_table('employees', [5, 'Charlie Davis', 40])
+db.insert_into_table('employees', [6, 'Diana Evans', 22])
+db.insert_into_table('employees', [7, 'Ethan Foster', 33])
+db.insert_into_table('employees', [8, 'Fiona Green', 29])
+db.insert_into_table('employees', [9, 'George Harris', 45])
+db.insert_into_table('employees', [10, 'Hannah Irving', 31])
+db.insert_into_table('employees', [11, 'Ian Johnson', 27])
+db.insert_into_table('employees', [12, 'Jackie King', 36])
+db.insert_into_table('employees', [13, 'Kevin Lee', 38])
+db.insert_into_table('employees', [14, 'Laura Martinez', 26])
+db.insert_into_table('employees', [15, 'Michael Nelson', 32])
+
+print(db.peek_table('employees', 'age'))
 
 # Visualize the table as a B-tree
 db.visualize_table('employees')
 
 # Print all rows in the table
-print(db.peek_table('employees'))
+print(db.peek_table('employees', 'id'))
 
 # Search for a specific row by column value
 result = db.select_row_from_table('employees', 'name', 'John Doe')
