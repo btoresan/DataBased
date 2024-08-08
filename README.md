@@ -2,7 +2,9 @@
 
 ## Requirements
 - [ ] Desktop Application
-- [ ] Extract, collect, clean and standardize data from the web or local files
+- [x] Data extractor
+- [ ] Collect Data
+- [ ] Parse Data
 - [x] Use structured binary files for storage, being it serial or sequential, with use of B/B+ or TRIE/PATRICIA
 - [x] Allows the user to update or add new data to existing data
 - [ ] Data presented by pages
