@@ -1,174 +1,114 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import dataEngine as de
 
 class DataBasedApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("DataBased")
-        self.database_path = None
-
-        # Main frame
-        self.main_frame = tk.Frame(self.root)
-        self.main_frame.pack(fill="both", expand=True)
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("Linux Games Database Search")
+        self.root.geometry("600x400")
+        
+        # Initialize database as None
         self.db = None
+        
+        # Start with the first page
+        self.start_page()
 
-        # Create the initial menu
-        self.create_initial_menu()
+        self.root.mainloop()
 
-    def create_initial_menu(self):
-        # Clear the main frame
-        for widget in self.main_frame.winfo_children():
+    def start_page(self):
+        # Clear the window if it's not the first page
+        for widget in self.root.winfo_children():
             widget.destroy()
 
-        # Reset the window title
-        self.root.title("DataBased")
+        # Title for the start page
+        title_label = tk.Label(self.root, text="DataBased", font=("Helvetica", 64))
+        title_label.pack(pady=20)
 
-        # Create and pack the initial menu label
-        label = tk.Label(self.main_frame, text="DataBased", font=("Arial", 24))
-        label.pack(pady=20)
+        # Create the start page with the Open Database button
+        open_button = tk.Button(self.root, text="Open Database", command=self.open_db, width=20, height=3, font=("Helvetica", 16))
+        open_button.pack(expand=True)
+    
+    def search_page(self):
+        # Clear the window for the search page
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        # Title for search page
+        search_title = tk.Label(self.root, text="Search DataBased", font=("Helvetica", 42))
+        search_title.pack(pady=20)
 
-        # Create the open button
-        open_button = tk.Button(self.main_frame, text="Open Database", command=self.open_database)
-        open_button.pack(pady=5)
+        # Create a frame to hold the search entry and button
+        search_frame = tk.Frame(self.root)
+        search_frame.pack(pady=(10, 30), expand=True)  # Adjust top and bottom padding
 
-    def open_database(self):
-        self.database_path = filedialog.askopenfilename(
-            title="Select Any File",
-            filetypes=(("All files", "*.*"),)
+        # Create the search entry widget
+        self.search_entry = tk.Entry(search_frame, font=("Helvetica", 16), width=50)
+        self.search_entry.pack(side=tk.LEFT, padx=(0, 10))
+
+        # Bind Enter key to search button click
+        self.search_entry.bind("<Return>", lambda event: self.show_results_page())
+
+        # Create the search button widget
+        search_button = tk.Button(search_frame, text="Search", command=self.show_results_page, font=("Helvetica", 12))
+        search_button.pack(side=tk.LEFT)
+
+        # Center the frame in the window
+        self.root.update_idletasks()  # Update the window to get accurate dimensions
+        frame_width = search_frame.winfo_reqwidth()
+        frame_height = search_frame.winfo_reqheight()
+        window_width = self.root.winfo_width()
+        window_height = self.root.winfo_height()
+        x = (window_width - frame_width) // 2
+        y = ((window_height - frame_height) // 2)  # Adjust vertical position to be higher
+        self.root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+
+    def show_results_page(self):
+        # Retrieve the query from the search entry
+        query = self.search_entry.get()
+        if not query:
+            messagebox.showwarning("Empty Query", "Please enter a search term.")
+            return
+        
+        # Clear the window for the results page
+        for widget in self.root.winfo_children():
+            widget.destroy()
+        
+        # Title for results page
+        results_title = tk.Label(self.root, text=f"Results for '{query}'", font=("Helvetica", 16))
+        results_title.pack(pady=20)
+
+        # Create frame for search results
+        results_frame = tk.Frame(self.root)
+        results_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        
+        self.results_text = tk.Text(results_frame, wrap=tk.WORD, height=15)
+        self.results_text.pack(fill=tk.BOTH, expand=True)
+        
+        # Go back to search button
+        back_button = tk.Button(self.root, text="Back to Search", command=self.search_page, font=("Helvetica", 12))
+        back_button.pack(pady=10)
+
+        # Simulate search operation (Replace this with actual search logic)
+        results = ["Minecraft"]
+        self.results_text.delete(1.0, tk.END)
+        if results:
+            for result in results:
+                self.results_text.insert(tk.END, f"{result}\n")
+        else:
+            self.results_text.insert(tk.END, "No results found.")
+    
+    def open_db(self):
+        db_path = filedialog.askopenfilename(
+            title="Open Database",
+            filetypes=(("Database Files", "*.db"), ("All Files", "*.*"))
         )
-        if self.database_path:
-            try:    
-                self.db = de.Database(self.database_path)
-                self.create_main_menu()
+        if db_path:
+            try:
+                self.db = de.Database(db_path)
+                self.search_page()  # Move to the search page
             except Exception as e:
-                print(e)
-                self.database_path = None
-                self.error_message("Invalid Database File")
-
-    def create_main_menu(self):
-        # Clear the main frame
-        for widget in self.main_frame.winfo_children():
-            widget.destroy()
-
-        # Reset the window title
-        self.root.title("DataBased")
-
-        # Create and pack the main menu label
-        label = tk.Label(self.main_frame, text="DataBased", font=("Arial", 24))
-        label.pack(pady=20)
-
-        # Operation names
-        operations = ["PEEK", "SELECT", "INSERT", "EDIT", "REMOVE"]
-
-        # Create navigation buttons
-        for operation in operations:
-            button = tk.Button(self.main_frame, text=operation, command=lambda operation=operation: self.show_page(operation))
-            button.pack(pady=5)
-
-        # Create the close button
-        close_button = tk.Button(self.main_frame, text="Close Database", command=self.close_database)
-        close_button.pack(pady=5)
-
-    def close_database(self):
-        self.database_path = None
-        self.create_initial_menu()
-
-    def show_page(self, operation):
-        # Clear the main frame
-        for widget in self.main_frame.winfo_children():
-            widget.destroy()
-
-        # Set the window title to the operation
-        self.root.title(f"{operation}")
-
-        # Call the appropriate function for the selected operation
-        if operation == "PEEK":
-            self.show_peek_page()
-        elif operation == "SELECT":
-            self.show_select_page()
-        elif operation == "INSERT":
-            self.show_insert_page()
-        elif operation == "EDIT":
-            self.show_edit_page()
-        elif operation == "REMOVE":
-            self.show_remove_page()
-
-    def error_message(self, message):
-        # Clear the main frame
-        for widget in self.main_frame.winfo_children():
-            widget.destroy()
-
-        # Create and pack the error message label
-        label = tk.Label(self.main_frame, text=message, font=("Arial", 24))
-        label.pack(pady=20)
-
-        # Create the back button
-        back_button = tk.Button(self.main_frame, text="Back", command=self.create_initial_menu)
-        back_button.pack(pady=5)
-
-    def show_peek_page(self):
-        label = tk.Label(self.main_frame, text="PEEK Page", font=("Arial", 24))
-        label.pack(pady=20)
-
-        tables = list(self.db.tables.keys())
-        table = tables[0]
-
-        data = list(self.db.peek_table(table, 'id'))
-
-        # Create a text widget to display the data
-        text_widget = tk.Text(self.main_frame, height=10, width=50)
-        text_widget.pack(pady=10)
-
-        # Get the data from the database
-        data = self.db.peek_table(table, 'id')
-
-        # Display the data in the text widget
-        for row in data:
-            text_widget.insert(tk.END, f"{row}\n")
-
-        # Create the back button
-        back_button = tk.Button(self.main_frame, text="Close", command=self.create_main_menu)
-        back_button.pack(pady=5)
-
-    def show_select_page(self):
-        label = tk.Label(self.main_frame, text="SELECT Page", font=("Arial", 24))
-        label.pack(pady=20)
-
-        # Here you can add the SELECT-specific code
-
-        back_button = tk.Button(self.main_frame, text="Close", command=self.create_main_menu)
-        back_button.pack(pady=5)
-
-    def show_insert_page(self):
-        label = tk.Label(self.main_frame, text="INSERT Page", font=("Arial", 24))
-        label.pack(pady=20)
-
-        # Todo add the INSERT-specific code
-
-        back_button = tk.Button(self.main_frame, text="Close", command=self.create_main_menu)
-        back_button.pack(pady=5)
-
-    def show_edit_page(self):
-        label = tk.Label(self.main_frame, text="EDIT Page", font=("Arial", 24))
-        label.pack(pady=20)
-
-        # Todo add the EDIT-specific code
-
-        back_button = tk.Button(self.main_frame, text="Close", command=self.create_main_menu)
-        back_button.pack(pady=5)
-
-    def show_remove_page(self):
-        label = tk.Label(self.main_frame, text="REMOVE Page", font=("Arial", 24))
-        label.pack(pady=20)
-
-        # Todo add the REMOVE-specific code
-
-        back_button = tk.Button(self.main_frame, text="Close", command=self.create_main_menu)
-        back_button.pack(pady=5)
+                messagebox.showerror("Error", f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = DataBasedApp(root)
-    root.geometry("400x300")  # Set the window size
-    root.mainloop()
+    app = DataBasedApp()
