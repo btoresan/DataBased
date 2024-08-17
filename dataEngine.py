@@ -268,7 +268,7 @@ class SimpleDB:
             if not os.path.exists(filename):
                 open(filename, 'w+b').close()
             self.file = open(filename, 'r+b')
-            self.page_size = 4096
+            self.page_size = 268435456
             self.page_cache = {}
         else:
             raise ValueError("Invalid file format. Only .db files are supported.")
@@ -351,11 +351,7 @@ class Database:
             if len(value) != len(table.columns):
                 print(f"Expected {len(table.columns)} values, got {len(value)}.")
                 continue
-            if not self.select_row_from_table(table_name, table.columns[0], value[0]):
-                table.btree.insert(value)
-            else :
-                print(f"Primary key {value[0]} already exists.")
-                continue
+            table.btree.insert(value)
         self._write_table(table)
 
     def load_table(self, table_name):
