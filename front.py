@@ -33,14 +33,28 @@ class DataBasedApp:
         # Clear the window for the search page
         for widget in self.root.winfo_children():
             widget.destroy()
-        
+
         # Title for search page
         search_title = tk.Label(self.root, text="Search DataBased", font=("Helvetica", 42))
         search_title.pack(pady=20)
 
+        # Create a frame to hold the radiobuttons
+        mode_frame = tk.Frame(self.root)
+        mode_frame.pack(pady=(10, 5), expand=True)  # Adjust top and bottom padding
+
+        # Variable to hold the search mode
+        self.search_mode = tk.StringVar(value="Name")  # Default to Name
+
+        # Create radiobuttons for selecting search mode
+        rb_name = tk.Radiobutton(mode_frame, text="Search by Name", variable=self.search_mode, value="Name", font=("Helvetica", 12))
+        rb_name.pack(side=tk.LEFT, padx=5)
+
+        rb_appid = tk.Radiobutton(mode_frame, text="Search by AppID", variable=self.search_mode, value="AppID", font=("Helvetica", 12))
+        rb_appid.pack(side=tk.LEFT, padx=5)
+
         # Create a frame to hold the search entry and button
         search_frame = tk.Frame(self.root)
-        search_frame.pack(pady=(10, 30), expand=True)  # Adjust top and bottom padding
+        search_frame.pack(pady=(5, 30), expand=True)  # Adjust top and bottom padding
 
         # Create the search entry widget
         self.search_entry = tk.Entry(search_frame, font=("Helvetica", 16), width=50)
@@ -53,10 +67,10 @@ class DataBasedApp:
         search_button = tk.Button(search_frame, text="Search", command=self.show_results_page, font=("Helvetica", 12))
         search_button.pack(side=tk.LEFT)
 
-        # Center the frame in the window
+        # Center the frames in the window
         self.root.update_idletasks()  # Update the window to get accurate dimensions
         frame_width = search_frame.winfo_reqwidth()
-        frame_height = search_frame.winfo_reqheight()
+        frame_height = search_frame.winfo_reqheight() + mode_frame.winfo_reqheight()  # Include both frames
         window_width = self.root.winfo_width()
         window_height = self.root.winfo_height()
         x = (window_width - frame_width) // 2
@@ -66,6 +80,8 @@ class DataBasedApp:
     def show_results_page(self):
         # Retrieve the query from the search entry
         query = self.search_entry.get()
+        search_mode = self.search_mode.get() # "AppID" or "Name"
+
         if not query:
             messagebox.showwarning("Empty Query", "Please enter a search term.")
             return

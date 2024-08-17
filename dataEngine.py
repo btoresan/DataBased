@@ -341,6 +341,23 @@ class Database:
             return
         self._write_table(table)
 
+    def insert_into_table_batch(self, table_name, values):
+        if table_name not in self.tables:
+            print(f"Table '{table_name}' does not exist.")
+            return
+        table = self.tables[table_name]
+        self._read_table(table)
+        for value in values:
+            if len(value) != len(table.columns):
+                print(f"Expected {len(table.columns)} values, got {len(value)}.")
+                continue
+            if not self.select_row_from_table(table_name, table.columns[0], value[0]):
+                table.btree.insert(value)
+            else :
+                print(f"Primary key {value[0]} already exists.")
+                continue
+        self._write_table(table)
+
     def load_table(self, table_name):
         if table_name not in self.tables:
             print(f"Table '{table_name}' does not exist.")
