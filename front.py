@@ -1,20 +1,18 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+from tkinter import filedialog, messagebox, font
 import dataEngine as de
 
 class DataBasedApp:
-    def __init__(self):
-        self.root = tk.Tk()
+    def __init__(self, root):
+        self.root = root
         self.root.title("Linux Games Database Search")
         self.root.geometry("600x400")
         
         # Initialize database as None
         self.db = None
-        
+
         # Start with the first page
         self.start_page()
-
-        self.root.mainloop()
 
     def start_page(self):
         # Clear the window if it's not the first page
@@ -109,81 +107,232 @@ class DataBasedApp:
         if score > 900:
             color, quality = "green", "Very Positive"
         elif score > 600:
-            color, quality = "yellow", "Positive"
+            color, quality = "blue", "Positive"
         elif score > 300:
             color, quality = "orange", "Mixed"
         else:
             color, quality = "red", "Negative"
         
         # Title for results page
-        results_title = tk.Label(self.root, text=results[1], font=("Helvetica", 32))
-        results_title.pack(pady=20)
+        self.results_title = tk.Label(self.root, text=results[1], font=("Helvetica", 32))
+        self.results_title.pack(pady=20)
 
         # Create a frame for the quality box
-        quality_frame = tk.Frame(self.root, padx=10, pady=5)
-        quality_frame.pack(pady=10)
+        self.quality_frame = tk.Frame(self.root, padx=10, pady=5)
+        self.quality_frame.pack(pady=10)
 
         # Create the quality box
-        quality_box = tk.Label(quality_frame, text=quality, font=("Helvetica", 16), padx=10, pady=5, bg=color)
-        quality_box.pack(side=tk.LEFT)
+        self.quality_box = tk.Label(self.quality_frame, text=quality, font=("Helvetica", 16), padx=10, pady=5, bg=color)
+        self.quality_box.pack(side=tk.LEFT)
+
+        self.review_label = tk.Label(self.root, text=f"Positive: {results[-3]} | Negative: {results[-2]} | Score: {results[-1]}", font=("Helvetica", 16))
+        self.review_label.pack(pady=10)
 
         # Go back to search button
-        back_button = tk.Button(self.root, text="Back to Search", command=self.search_page, font=("Helvetica", 12))
-        back_button.pack(pady=10)
+        self.back_button = tk.Button(self.root, text="Back to Search", command=self.search_page, font=("Helvetica", 12))
+        self.back_button.pack(pady=10)
 
-        comments = self.db.select_row_from_table('Comments', 'AppId', results[0])
+        #A partir da qui os comentarios da pagina vvvvv
 
-        # Get the first 50 comments
-        first_50_comments = comments[:50]
+        self.all_comments = self.db.select_row_from_table('Comments', 'AppId', results[0])
+        self.comments = self.all_comments
 
-        comments_frame = tk.Frame(self.root)
-        comments_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
+        self.button_frame = tk.Frame(self.root, pady=10, padx=10)
+        self.button_frame.pack()
 
-        # Create a label and button for each comment
-        for i, comment in enumerate(first_50_comments):
-            text = tk.Label(comments_frame, text=f"{comment[2]}: {comment[9]}", wraplength=500, justify=tk.LEFT)
-            text.grid(row=i, column=0, padx=5, pady=5, sticky='w')
-            
-            button = tk.Button(comments_frame, text=f"Button")
-            button.grid(row=i, column=1, padx=5, pady=5)
+        # Create three buttons side by side
+        self.tinker_button = tk.Button(self.button_frame, text="Show Only Tinker", command=self.tinker_only)
+        self.tinker_button.pack(padx=5, side="left")
 
-    def show_results_page(self):
-        # Retrieve the query from the search entry
-        query = self.search_entry.get()
-        search_mode = self.search_mode.get() # "AppID" or "Name"
+        self.works_button = tk.Button(self.button_frame, text="Show Only Works", command=self.works_only)
+        self.works_button.pack(padx=5, side="left")
 
-        if not query:
-            messagebox.showwarning("Empty Query", "Please enter a search term.")
-            return
-        
-        # Clear the window for the results page
+        self.order_button = tk.Button(self.button_frame, text="Order by Duration", command=self.order_by_duration)
+        self.order_button.pack(padx=5, side="left")
+
+        self.system_button = tk.Button(self.button_frame, text="Coments with SysInfo", command=self.only_sysinfo)
+        self.system_button.pack(padx=5, side="left")
+
+        self.reset_button = tk.Button(self.button_frame, text="Reset", command=self.reset_results)
+        self.reset_button.pack(padx=5, side="left")
+
+        self.stats = tk.Label(self.root, text=f"Found {len(self.comments)} comments", font=("Helvetica", 20))
+        self.stats.pack(pady=20)
+
+        self.canvas = tk.Canvas(self.root)
+        self.scrollbar = tk.Scrollbar(self.root, orient="vertical", command=self.canvas.yview)
+        self.frame = tk.Frame(self.canvas)
+
+        self.canvas.create_window((0, 0), window=self.frame, anchor="nw")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)      
+
+        self.canvas.pack(side="left",fill="both", expand=True)
+        self.scrollbar.pack(side="right", fill="y")
+
+        self.frame.bind("<Configure>", self._on_frame_configure)
+
+        for comment in self.comments:
+            self.comment_frame = tk.Frame(self.frame)
+            self.label = tk.Label(self.comment_frame, text=f"Works : {comment[-2]} | SignificantBugs : {comment[3]} | Duration : {comment[4]} | Tinker : {comment[-3]}", font=("Helvetica", 16))
+            self.button = tk.Button(self.comment_frame, text="View", command=lambda c=comment: self.view_comment(c), font=("Helvetica", 12))
+
+            self.label.pack(side="left", padx=5)
+            self.button.pack(side="right", padx=5)
+
+            self.comment_frame.pack(fill="x", pady=2)
+
+    def only_sysinfo(self):
+        self.comments = [comment for comment in self.comments if comment[10] != {}]
+
+        self.stats = tk.Label(self.root, text=f"Filtered by System Info ({len(self.comments)} comments)", font=("Helvetica", 20))
+        self.stats.pack(pady=20)
+
+        # Destroy all comment widgets
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+
+        for comment in self.comments:
+            self.comment_frame = tk.Frame(self.frame)
+            self.label = tk.Label(self.comment_frame, text=f"Works : {comment[-2]} | SignificantBugs : {comment[3]} | Duration : {comment[4]} | Tinker : {comment[-3]}", font=("Helvetica", 16))
+            self.button = tk.Button(self.comment_frame, text="View", command=lambda c=comment: self.view_comment(c), font=("Helvetica", 12))
+
+            self.label.pack(side="left", padx=5)
+            self.button.pack(side="right", padx=5)
+
+            self.comment_frame.pack(fill="x", pady=2)
+
+    def tinker_only(self):
+        self.comments = [comment for comment in self.comments if comment[-3] == True]
+
+        self.stats = tk.Label(self.root, text=f"Filtered by Tinker ({len(self.comments)} comments)", font=("Helvetica", 20))
+        self.stats.pack(pady=20)
+
+        # Destroy all comment widgets
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+
+        for comment in self.comments:
+            self.comment_frame = tk.Frame(self.frame)
+            self.label = tk.Label(self.comment_frame, text=f"Works : {comment[-2]} | SignificantBugs : {comment[3]} | Duration : {comment[4]} | Tinker : {comment[-3]}", font=("Helvetica", 16))
+            self.button = tk.Button(self.comment_frame, text="View", command=lambda c=comment: self.view_comment(c), font=("Helvetica", 12))
+
+            self.label.pack(side="left", padx=5)
+            self.button.pack(side="right", padx=5)
+
+            self.comment_frame.pack(fill="x", pady=2)
+
+    def works_only(self):
+        self.comments = [comment for comment in self.comments if comment[-2] == True]
+
+        self.stats = tk.Label(self.root, text=f"Filtered by Works ({len(self.comments)} comments)", font=("Helvetica", 20))
+        self.stats.pack(pady=20)
+
+        # Destroy all comment widgets
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+
+        for comment in self.comments:
+            self.comment_frame = tk.Frame(self.frame)
+            self.label = tk.Label(self.comment_frame, text=f"Works : {comment[-2]} | SignificantBugs : {comment[3]} | Duration : {comment[4]} | Tinker : {comment[-3]}", font=("Helvetica", 16))
+            self.button = tk.Button(self.comment_frame, text="View", command=lambda c=comment: self.view_comment(c), font=("Helvetica", 12))
+
+            self.label.pack(side="left", padx=5)
+            self.button.pack(side="right", padx=5)
+
+            self.comment_frame.pack(fill="x", pady=2)
+
+    def order_by_duration(self):
+
+        self.comments = [comment for comment in self.comments if comment[4] != ""]
+        self.comments = sorted(self.comments, key=lambda x: x[4])
+
+        self.stats = tk.Label(self.root, text=f"Ordered by Duration ({len(self.comments)} comments)", font=("Helvetica", 20))
+        self.stats.pack(pady=20)
+
+        # Destroy all comment widgets
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+
+        for comment in self.comments:
+            self.comment_frame = tk.Frame(self.frame)
+            self.label = tk.Label(self.comment_frame, text=f"Works : {comment[-2]} | SignificantBugs : {comment[3]} | Duration : {comment[4]} | Tinker : {comment[-3]}", font=("Helvetica", 16))
+            self.button = tk.Button(self.comment_frame, text="View", command=lambda c=comment: self.view_comment(c), font=("Helvetica", 12))
+
+            self.label.pack(side="left", padx=5)
+            self.button.pack(side="right", padx=5)
+
+            self.comment_frame.pack(fill="x", pady=2)
+
+    def reset_results(self):
+
+        self.comments = self.all_comments
+
+        # Destroy all comment widgets
+        for widget in self.frame.winfo_children():
+            widget.destroy()
+
+        self.stats = tk.Label(self.root, text=f"Reset ({len(self.comments)} comments)", font=("Helvetica", 20))
+        self.stats.pack(pady=20)
+
+        for comment in self.comments:
+            self.comment_frame = tk.Frame(self.frame)
+            self.label = tk.Label(self.comment_frame, text=f"Works : {comment[-2]} | SignificantBugs : {comment[3]} | Duration : {comment[4]} | Tinker : {comment[-3]}", font=("Helvetica", 16))
+            self.button = tk.Button(self.comment_frame, text="View", command=lambda c=comment: self.view_comment(c), font=("Helvetica", 12))
+
+            self.label.pack(side="left", padx=5)
+            self.button.pack(side="right", padx=5)
+
+            self.comment_frame.pack(fill="x", pady=2)
+
+    def view_comment(self, comment):
+        self.root.title("Comment Details")
+
         for widget in self.root.winfo_children():
             widget.destroy()
-        
-        # Title for results page
-        results_title = tk.Label(self.root, text=f"Results for '{query}'", font=("Helvetica", 16))
-        results_title.pack(pady=20)
 
-        # Create frame for search results
-        results_frame = tk.Frame(self.root)
-        results_frame.pack(pady=10, padx=10, fill=tk.BOTH, expand=True)
-        
-        self.results_text = tk.Text(results_frame, wrap=tk.WORD, height=15)
-        self.results_text.pack(fill=tk.BOTH, expand=True)
-        
-        # Go back to search button
-        back_button = tk.Button(self.root, text="Back to Search", command=self.search_page, font=("Helvetica", 12))
-        back_button.pack(pady=10)
+        self.back_button = tk.Button(self.root, text="Back to Search", command=self.search_page, font=("Helvetica", 12))
+        self.back_button.pack(pady=10)
 
-        # Simulate search operation (Replace this with actual search logic)
-        results = self.db.select_row_from_table('Games', 'Title', query)
-        self.results_text.delete(1.0, tk.END)
-        if results:
-            for result in results:
-                self.results_text.insert(tk.END, f"{result}\n")
-        else:
-            self.results_text.insert(tk.END, "No results found.")
-    
+        comment_id_label = tk.Label(self.root, text=f"Comment ID: {comment[0]}", font=("Helvetica", 16), fg="white")
+        comment_id_label.pack(pady=5, anchor="w")
+
+        app_id_label = tk.Label(self.root, text=f"App ID: {comment[1]}", font=("Helvetica", 16), fg="white")
+        app_id_label.pack(pady=5, anchor="w")
+
+        time_label = tk.Label(self.root, text=f"Time: {comment[2]}", font=("Helvetica", 16), fg="white")
+        time_label.pack(pady=5, anchor="w")
+
+        significant_bugs_label = tk.Label(self.root, text=f"Significant Bugs: {comment[3]}", font=("Helvetica", 16), fg="white")
+        significant_bugs_label.pack(pady=5, anchor="w")
+
+        duration_label = tk.Label(self.root, text=f"Duration: {comment[4]}", font=("Helvetica", 16), fg="white")
+        duration_label.pack(pady=5, anchor="w")
+
+        installs_label = tk.Label(self.root, text=f"Installs: {comment[5]}", font=("Helvetica", 16), fg="white")
+        installs_label.pack(pady=5, anchor="w")
+
+        opens_label = tk.Label(self.root, text=f"Opens: {comment[6]}", font=("Helvetica", 16), fg="white")
+        opens_label.pack(pady=5, anchor="w")
+
+        performance_faults_label = tk.Label(self.root, text=f"Performance Faults: {comment[7]}", font=("Helvetica", 16), fg="white")
+        performance_faults_label.pack(pady=5, anchor="w")
+
+        tinker_label = tk.Label(self.root, text=f"Tinker: {comment[8]}", font=("Helvetica", 16), fg="white")
+        tinker_label.pack(pady=5, anchor="w")
+
+        verdict_label = tk.Label(self.root, text=f"Verdict: {comment[9]}", font=("Helvetica", 16), fg="white")
+        verdict_label.pack(pady=5, anchor="w")
+
+        if comment[10] != {}:
+            sysinfo_label = tk.Label(self.root, text="System Info:", font=("Helvetica", 16), fg="white")
+            for key in comment[10].keys():
+                sysinfo_label = tk.Label(self.root, text=f"     {key}: {comment[10][key]}", font=("Helvetica", 16), fg="white")
+                sysinfo_label.pack(pady=5, anchor="w")
+        
+
+    def _on_frame_configure(self, event):
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))  
+        
     def open_db(self):
         db_path = filedialog.askopenfilename(
             title="Open Database",
@@ -197,4 +346,6 @@ class DataBasedApp:
                 messagebox.showerror("Error", f"An error occurred: {e}")
 
 if __name__ == "__main__":
-    app = DataBasedApp()
+    root = tk.Tk()
+    app = DataBasedApp(root)
+    root.mainloop()
