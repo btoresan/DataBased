@@ -7,7 +7,7 @@
 Interface de pesquisa com Motor de Busca prório para a avaliação da compatibilidade de jogos da steam com sistemas linux baseado na avaliação de usuários
 
 Para rodar o DataBased baixe o arquivo .db com os dados de jogos da steam e sua avaliação de usuário em sistemas Linus aqui:
-  https://drive.google.com/file/d/18a5WgM80FTuuTvqB5YNemL9PpY-NpQJK/view?usp=drive_link
+[  https://drive.google.com/file/d/18a5WgM80FTuuTvqB5YNemL9PpY-NpQJK/view?usp=drive_link](https://drive.google.com/file/d/1u9-NLTa205ZCClYDRzCd85FdYHFfNJP2/view?usp=sharing)
 
 O Executável funciona e foi projetado para sistemas de Windows 11 mas deve funcionar para Windows 10 também
 
