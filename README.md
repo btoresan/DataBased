@@ -8,3 +8,12 @@ Interface de pesquisa com Motor de Busca prório para a avaliação da compatibi
 
 Para rodar o DataBased baixe o arquivo .db com os dados de jogos da steam e sua avaliação de usuário em sistemas Linus aqui:
   https://drive.google.com/file/d/18a5WgM80FTuuTvqB5YNemL9PpY-NpQJK/view?usp=drive_link
+
+O Executável funciona e foi projetado para sistemas de Windows 11 mas deve funcionar para Windows 10 também
+
+o Diretório dataENV (Windows) possui já todas as bibliotecas para recompilar o código e gerar um novo executável
+
+Caso você queira rodar este programa em sistemas linux/macOS é apenas necessario criar um venv em python (python -m vnev env_name) e os seguintes pacotes
+
+pip install graphviz
+pip install pyinstaller       (opcional para criar o executável)
